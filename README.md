@@ -14,4 +14,13 @@ Contributor: Yi Wai Chow, Renke Cao
  **alternative approach**
  - import the space_shooter.sof directly from the output file in the repository to the chip 5CSEMA5F31C6 
  
- ![](meteor.mp4)
+ ![](meteor.gif)
+
+**Gameplay**
+ - you as the player control the ship to dodge the meteor that will be floating around the screen
+ - standard WASD control for ship movement
+ - the amount and the speed of the meteors will increase as survival time increase
+ - the number of meteors will be capped at 7 meteors
+ - when the player's ship collide with any of the meteors, the game is over and will restart right after
+ 
+ **The purpose of this game is to survival as long as you can**
