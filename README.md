@@ -17,6 +17,8 @@ Contributor: Yi Wai Chow, Renke Cao
  - Import the space_shooter.sof directly from the output file in the repository to the chip 5CSEMA5F31C6 
  
  ![](meteor.gif)
+ 
+ download meteor.mp4 for a smoother demonstration
 
 **Gameplay**
  - You as the player control the ship to dodge the meteor that will be floating around the screen
