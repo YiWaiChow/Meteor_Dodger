@@ -1,0 +1,46 @@
+module meteor_movement
+    (
+    input wire i_clk,         // base clock
+    input wire m_frame,   // animation clock: pixel clock is 1 pix/frame
+    input wire m_reset,         // reset: returns animation to starting position
+	 input wire m_x, // meteor starting position x
+	 input wire m_y, // meteor starting position y
+	 input wire m_dir_x, // meteor x direction
+	 input wire m_dir_y, // meteor y direction
+	 input wire [2:0]meteor_colour, // meteor colour
+	 output wire [2:0]meteor_colour_out,
+    output wire [11:0] o_x,  // the meteor output x position
+    output wire [11:0] o_y // the meteor outpur y position
+    );
+
+    reg [11:0] x ;   // horizontal position of square centre
+    reg [11:0] y ;   // vertical position of square centre
+    reg x_dir ;  // horizontal animation direction
+    reg y_dir ;  // vertical animation direction
+
+
+    always @ (posedge i_clk)
+    begin
+        if (m_reset)  // on reset return to starting position
+        begin
+            x <= m_x;
+            y <= m_y;
+            x_dir <= m_dir_x;
+            y_dir <= m_dir_y;
+        end
+        if (m_frame)
+        begin
+            x <= (x_dir) ? x + 1 : x - 1;  // move left if positive x_dir
+            y <= (y_dir) ? y + 1 : y - 1;  // move down if positive y_dir
+
+            if (x == 0)  // edge of square is at left of screen
+                x_dir <= 1;  // change direction to right
+            if (x == 118)  // edge of square at right
+                x_dir <= 0;  // change direction to left          
+            if (y == 118)  // edge of square at top of screen
+                y_dir <= 1;  // change direction to down
+            if (y == 0)  // edge of square at bottom
+                y_dir <= 0;  // change direction to up              
+        end
+    end
+endmodule

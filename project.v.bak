@@ -1,0 +1,329 @@
+module project
+	(LEDR,
+		CLOCK_50,						//	On Board 50 MHz
+		SW,
+		KEY,							// On Board Keys
+		VGA_CLK,   						//	VGA Clock
+		VGA_HS,							//	VGA H_SYNC
+		VGA_VS,							//	VGA V_SYNC
+		VGA_BLANK_N,						//	VGA BLANK
+		VGA_SYNC_N,						//	VGA SYNC
+		VGA_R,   						//	VGA Red[9:0]
+		VGA_G,	 						//	VGA Green[9:0]
+		VGA_B,
+		PS2_CLK,
+		PS2_DAT,//	VGA Blue[9:0]
+	);
+
+	input			CLOCK_50;				//	50 MHz
+	input	[3:0]	KEY;					
+	input [9:0] SW;
+		output [9:0] LEDR;
+	output			VGA_CLK;   				//	VGA Clock
+	output			VGA_HS;					//	VGA H_SYNC
+	output			VGA_VS;					//	VGA V_SYNC
+	output			VGA_BLANK_N;				//	VGA BLANK
+	output			VGA_SYNC_N;				//	VGA SYNC
+	output	[7:0]	VGA_R;   				//	VGA Red[7:0] Changed from 10 to 8-bit DAC
+	output	[7:0]	VGA_G;	 				//	VGA Green[7:0]
+	output	[7:0]	VGA_B;   				//	VGA Blue[7:0]
+	inout PS2_CLK, PS2_DAT;
+	
+	wire resetn,up,down,left,right,en_game_playing;
+	assign resetn = SW[0];
+	assign en_game_playing = SW[1];
+	
+	wire keyUP,keyDOWN,keyLEFT,keyRIGHT, keyCTRL,keyEND,keyHOME;
+	assign up = ~KEY[3]||keyUP;
+	assign down = ~KEY[2]||keyDOWN;
+	assign left = ~KEY[1]||keyLEFT;
+	assign right = ~KEY[0]||keyRIGHT;
+	keyboard kb(.CLOCK_50(CLOCK_50),
+				.resetn(resetn),
+				.PS2_CLK(PS2_CLK),
+				.PS2_DAT(PS2_DAT),
+				.UP(keyUP),
+				.DOWN(keyDOWN),
+				.LEFT(keyLEFT),
+				.RIGHT(keyRIGHT),
+				.CTRL(keyCTRL),
+				.END(keyEND),
+				.HOME(keyHOME));
+	
+	wire ld_xyc,plotEn,m_plotEn,clean;
+	
+	wire writeEn,finish, cleanDone;
+	wire [7:0] plotx;
+	wire [6:0] ploty;
+	
+	wire frameC;
+	wire [2:0] color;
+	wire [2:0] m_color;
+	vga_controlPath controlP(.resetn(resetn),
+								.CLOCK_50(CLOCK_50),
+								.plotEn(plotEn),
+								.m_plotEn(m_plotEn),
+								.ld_xyc(ld_xyc),
+								.finish(finish),
+								.clean(clean),
+								.frameCounter(frameC),
+								.cleanDone(cleanDone));
+
+	vga_dataPath dataP(.colorIn(SW[9:7]),
+				.m_colorIn(m_color),
+				.resetn(resetn),
+				.CLOCK_50(CLOCK_50),
+				.ld_xyc(ld_xyc),
+				.plotEn(plotEn),
+				.m_plotEn(m_plotEn),
+				.writeEn(writeEn),
+				.x(plotx),
+				.y(ploty),
+				.initialX(ShipInitX),
+				.initialY(ShipInitY),
+				.m_initialx(meteorx),
+				.m_initialy(meteory),
+				.finish(finish),
+				.clean(clean),
+				.frameCounter(frameC),
+				.colorOut(color),
+				.cleanDone(cleanDone),
+				.up(up),
+				.down(down),
+				.left(left),
+				.right(right));
+						
+	frameCounter c4(.clkin(CLOCK_50),.clkout(frameC));
+	
+		vga_adapter VGA(
+		.resetn(resetn),
+		.clock(CLOCK_50),
+		.colour(color),
+		.x(plotx),
+		.y(ploty),
+		.plot(writeEn),
+		.VGA_R(VGA_R),
+		.VGA_G(VGA_G),
+		.VGA_B(VGA_B),
+		.VGA_HS(VGA_HS),
+		.VGA_VS(VGA_VS),
+		.VGA_BLANK(VGA_BLANK_N),
+		.VGA_SYNC(VGA_SYNC_N),
+		.VGA_CLK(VGA_CLK));
+	defparam VGA.RESOLUTION = "160x120";
+	defparam VGA.MONOCHROME = "FALSE";
+	defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+	defparam VGA.BACKGROUND_IMAGE = "black.mif";
+	
+	wire en_Ship_gamestart,en_moveShipUp,en_moveShipDown,en_moveShipLeft,en_moveShipRight;//enable signals
+	wire signed [9:0] ShipInitX;
+	wire signed [8:0] ShipInitY;
+	wire signed [9:0] meteorx;
+	wire signed [8:0] meteory;
+	
+	shipMove_controlpath sc0(.CLOCK_50(CLOCK_50),
+									.resetn(resetn),
+									.UP(up),
+									.DOWN(down),
+									.LEFT(left),
+									.RIGHT(right),
+									.en_Ship_gamestart(en_Ship_gamestart),
+									.en_moveShipUp(en_moveShipUp),
+									.en_moveShipDown(en_moveShipDown),
+									.en_moveShipLeft(en_moveShipLeft),
+									.en_moveShipRight(en_moveShipRight),
+									.en_game_playing(en_game_playing),
+									.LEDR(LEDR));
+	
+	ShipenMove_datapath SMD0(.CLOCK_50(CLOCK_50),
+									.resetn(resetn),
+									.en_new_game(0),
+									.en_Ship_gamestart(en_Ship_gamestart),
+									.en_moveShipUp(en_moveShipUp),
+									.en_moveShipDown(en_moveShipDown),
+									.en_moveShipLeft(en_moveShipLeft),
+									.en_moveShipRight(en_moveShipRight),
+									.ShipInitX(ShipInitX),
+									.ShipInitY(ShipInitY));
+									
+	meteor_movement m1(.i_clk(CLOCK_50),
+							 .m_frame_count(frameC),
+							 .m_reset_n(resetn),
+							 .m_x(0),
+							 .m_y(0),
+							 .m_dir_x(1),
+							 .m_dir_y(1),
+							 .meteor_colour(3'b110),
+							 .meteor_colour_out(m_color),
+							 .o_x(meteorx),
+							 .o_y(meteory));
+							 
+							 
+							 
+
+endmodule
+		
+module vga_controlPath (resetn,CLOCK_50,m_plotEn,plotEn,ld_xyc,finish,m_finish,cleanDone,frameCounter,clean);
+
+   input resetn,CLOCK_50,finish,cleanDone,frameCounter, m_finish;
+	
+	reg [5:0] current_state, next_state;
+
+	output reg ld_xyc, plotEn,clean,m_plotEn;
+	
+	localparam  S_LOAD_XYC        = 5'd0,
+					S_CLEAN			 = 5'd1,
+					S_PLOT          = 5'd2,
+					S_PLOT_M        = 5'd3;
+	
+	
+    always@(*)
+    begin: state_table 
+		case (current_state)
+			 S_LOAD_XYC: next_state =frameCounter ? S_CLEAN : S_LOAD_XYC;
+			 S_CLEAN: next_state = cleanDone ? S_PLOT: S_CLEAN;
+			 S_PLOT: next_state = (finish) ? S_PLOT_M : S_PLOT;
+			 S_PLOT_M: next_state = (m_finish) ? S_LOAD_XYC : S_PLOT_M;
+		default: next_state = S_LOAD_XYC;
+		endcase
+    end // state_table
+   
+    always @(*)
+    begin: enable_signals
+        ld_xyc = 0;
+		  plotEn = 0;
+		  clean = 0;
+		  m_plotEn = 0;
+        case (current_state)
+            S_LOAD_XYC: ld_xyc= 1;
+				S_CLEAN: clean =1;
+				S_PLOT: plotEn = 1;
+				S_PLOT_M: m_plotEn =1;
+        endcase
+    end // enable_signals
+ 
+    always@(posedge CLOCK_50)
+    begin: state_FFs
+        if(!resetn)
+            current_state <= S_LOAD_XYC;
+        else
+            current_state <= next_state;
+    end // state_FFS
+	 
+endmodule
+
+module vga_dataPath(m_colorIn,colorIn,resetn,CLOCK_50,ld_xyc,m_plotEn,plotEn,writeEn,x,y,initialX,initialY,finish,m_finish,m_initialx,m_initialy,clean,cleanDone,frameCounter,colorOut,up,down,left,right);	 
+	input [2:0] colorIn;
+	input [2:0] m_colorIn;
+	input up, down, right, left;
+	input resetn,CLOCK_50,ld_xyc,plotEn, m_plotEn,clean,frameCounter;
+	output reg writeEn = 1'b0;
+	output reg [7:0] x = 8'b10011110;
+	output reg [6:0] y = 7'b0;
+	input [7:0] initialX;
+	input [6:0] initialY;
+	input [7:0] m_initialx;
+	input [6:0] m_initialy;
+	output reg finish = 1'b0; 
+	output reg m_finish = 1'b0;
+	
+	reg [7:0] HCount = 8'b0;
+	reg [6:0] VCount = 7'b0;
+
+	output reg cleanDone = 1'b0;
+	reg [7:0] XIn =8'b10011110;
+	reg [6:0] YIn =7'b0;
+	reg [2:0] plotting = 3'b0;
+	output reg [2:0] colorOut = 3'b0;
+
+	 
+	
+	always@(posedge CLOCK_50) begin
+			if(!resetn) begin
+            x <= 8'b10011110; 
+            y <= 7'b0;
+				plotting <= 3'b0;
+				writeEn  <= 1'b0;
+				finish <= 1'b0;
+				m_finish <= 1'b0;
+				plotting <= 3'b0;
+				colorOut <= 3'b0;
+				finish <=0;
+            writeEn <= 0;
+				cleanDone <= 0;
+        end
+        else begin
+				finish <=0;
+            writeEn <= 0;
+				cleanDone <= 0;
+				if(ld_xyc) begin
+					finish <= 0;
+					x <= XIn;
+					
+					y <= YIn;
+				end
+				
+				if (clean) begin
+					x <= HCount;
+					y <= VCount;
+					colorOut <= 3'b0;
+					writeEn <= 1;					
+					if(HCount<10'd159)
+						HCount <= HCount+1'b1;
+					else begin
+						if(VCount<10'd119) begin
+						VCount <= VCount+1'b1;
+						HCount <= 8'b0;
+						end
+						else begin
+						HCount <= 8'b0;
+						VCount <= 7'b0;
+						cleanDone <= 1;
+						end
+					end
+				end
+				
+				if(plotEn) begin
+					x <= initialX + plotting[0];
+					y <= initialY + plotting[1];
+					colorOut <= colorIn;
+					writeEn <= 1'b1;
+					plotting <= plotting + 3'b1;
+				end
+				if(m_plotEn) begin
+					x <= m_initialx;
+					y <= m_initialy;
+					colorOut <= m_colorIn;
+					writeEn <= 1'b1;
+					m_finish <=  1'b1;
+					end
+				   
+				if(plotting == 3'b100)begin
+				finish <= 1;
+				plotting <= 3'b0;
+				end
+        end
+    end
+	 
+
+	 
+endmodule
+
+module frameCounter(clkin,clkout);
+	input clkin;
+	output reg clkout = 0;
+	reg [26:0] counter = 0;
+	always @(posedge clkin)
+	begin
+		if (counter == 0)
+		begin
+			counter <= (50000000/4-1);
+			clkout <= 1;
+		end
+		else 
+		begin
+			counter <= counter -1;
+			clkout <= 0;
+		end
+	end
+endmodule
