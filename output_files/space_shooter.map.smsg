@@ -1,0 +1,4 @@
+Warning (10268): Verilog HDL information at project.v(643): always construct contains both blocking and non-blocking assignments File: C:/Users/Jimmy/Desktop/Final_version/project.v Line: 643
+Info (10281): Verilog HDL Declaration information at project.v(606): object "shipColor" differs only in case from object "shipcolor" in the same scope File: C:/Users/Jimmy/Desktop/Final_version/project.v Line: 606
+Warning (10268): Verilog HDL information at project.v(1056): always construct contains both blocking and non-blocking assignments File: C:/Users/Jimmy/Desktop/Final_version/project.v Line: 1056
+Warning (10268): Verilog HDL information at main_ship.v(146): always construct contains both blocking and non-blocking assignments File: C:/Users/Jimmy/Desktop/Final_version/main_ship.v Line: 146
