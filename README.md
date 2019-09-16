@@ -14,4 +14,4 @@ Contributor: Yi Wai Chow, Renke Cao
  **alternative approach**
  - import the space_shooter.sof directly from the output file in the repository to the chip 5CSEMA5F31C6 
  
- 
+ ![](meteor.mp4)
